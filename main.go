@@ -84,6 +84,9 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "swarm-bench"
 	app.Usage = "Swarm Benchmarking Tool"
+	app.Version = "0.1.0"
+	app.Author = ""
+	app.Email = ""
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
 			Name:  "concurrency, c",
