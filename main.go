@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -59,16 +59,12 @@ func bench(requests, concurrency int, image string) {
 	timings := make([]float64, requests)
 	completeCh := make(chan time.Duration)
 	current := 0
-	prevPercent := -1
 	go func() {
 		for timing := range completeCh {
 			timings = append(timings, timing.Seconds())
 			current++
 			percent := int(float64(current) / float64(requests) * 100)
-			if percent > prevPercent {
-				log.Printf("[%3.0d%%] %d/%d containers started (%vms)", percent, current, requests, int(timing.Seconds()*1000))
-				prevPercent = percent
-			}
+			fmt.Printf("[%3.0d%%] %d/%d containers started\n", percent, current, requests)
 		}
 	}()
 	session(requests, concurrency, image, completeCh)
@@ -79,15 +75,15 @@ func bench(requests, concurrency int, image string) {
 	p90th, _ := stats.Percentile(timings, 90)
 	p99th, _ := stats.Percentile(timings, 99)
 
-	log.Printf("---")
-	log.Printf("Time taken for tests: %s", total.String())
-	log.Printf("Time per container: %vms [50th] | %vms [90th] | %vms [99th]", int(p50th*1000), int(p90th*1000), int(p99th*1000))
+	fmt.Println("")
+	fmt.Printf("Time taken for tests: %s\n", total.String())
+	fmt.Printf("Time per container: %vms [50th] | %vms [90th] | %vms [99th]\n", int(p50th*1000), int(p90th*1000), int(p99th*1000))
 }
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "docker-bench"
-	app.Usage = "docker benchmarking tool"
+	app.Name = "swarm-bench"
+	app.Usage = "Swarm Benchmarking Tool"
 	app.Flags = []cli.Flag{
 		cli.IntFlag{
 			Name:  "concurrency, c",
