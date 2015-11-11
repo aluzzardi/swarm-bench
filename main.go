@@ -11,7 +11,7 @@ import (
 	"github.com/montanaflynn/stats"
 )
 
-func worker(requests int, image string, completeCh chan time.Duration) {
+func worker(requests int, image string, args []string, completeCh chan time.Duration) {
 	client, err := docker.NewClientFromEnv()
 	if err != nil {
 		panic(err)
@@ -23,6 +23,7 @@ func worker(requests int, image string, completeCh chan time.Duration) {
 		container, err := client.CreateContainer(docker.CreateContainerOptions{
 			Config: &docker.Config{
 				Image: image,
+				Cmd:   args,
 			}})
 		if err != nil {
 			panic(err)
@@ -37,7 +38,7 @@ func worker(requests int, image string, completeCh chan time.Duration) {
 	}
 }
 
-func session(requests, concurrency int, image string, completeCh chan time.Duration) {
+func session(requests, concurrency int, image string, args []string, completeCh chan time.Duration) {
 	var wg sync.WaitGroup
 
 	n := requests / concurrency
@@ -45,7 +46,7 @@ func session(requests, concurrency int, image string, completeCh chan time.Durat
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func() {
-			worker(n, image, completeCh)
+			worker(n, image, args, completeCh)
 			wg.Done()
 		}()
 	}
@@ -53,7 +54,7 @@ func session(requests, concurrency int, image string, completeCh chan time.Durat
 
 }
 
-func bench(requests, concurrency int, image string) {
+func bench(requests, concurrency int, image string, args []string) {
 	start := time.Now()
 
 	timings := make([]float64, requests)
@@ -67,7 +68,7 @@ func bench(requests, concurrency int, image string) {
 			fmt.Printf("[%3.0d%%] %d/%d containers started\n", percent, current, requests)
 		}
 	}()
-	session(requests, concurrency, image, completeCh)
+	session(requests, concurrency, image, args, completeCh)
 	close(completeCh)
 
 	total := time.Since(start)
@@ -109,7 +110,7 @@ func main() {
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
-		bench(c.Int("requests"), c.Int("concurrency"), c.String("image"))
+		bench(c.Int("requests"), c.Int("concurrency"), c.String("image"), c.Args())
 	}
 
 	app.Run(os.Args)
