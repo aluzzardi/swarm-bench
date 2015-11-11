@@ -59,7 +59,7 @@ func bench(requests, concurrency int, image string) {
 	timings := make([]float64, requests)
 	completeCh := make(chan time.Duration)
 	current := 0
-	prevPercent := 0
+	prevPercent := -1
 	go func() {
 		for timing := range completeCh {
 			timings = append(timings, timing.Seconds())
