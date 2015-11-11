@@ -71,7 +71,7 @@ func bench(requests, concurrency int, image string) {
 	close(completeCh)
 
 	total := time.Since(start)
-	p50th, _ := stats.Median(timings)
+	p50th, _ := stats.Percentile(timings, 50)
 	p90th, _ := stats.Percentile(timings, 90)
 	p99th, _ := stats.Percentile(timings, 99)
 
