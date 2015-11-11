@@ -63,8 +63,8 @@ func bench(requests, concurrency int, image string) {
 		for timing := range completeCh {
 			timings = append(timings, timing.Seconds())
 			current++
-			percent := int(float64(current) / float64(requests) * 100)
-			fmt.Printf("[%3.0d%%] %d/%d containers started\n", percent, current, requests)
+			percent := float64(current) / float64(requests) * 100
+			fmt.Printf("[%3.f%%] %d/%d containers started\n", percent, current, requests)
 		}
 	}()
 	session(requests, concurrency, image, completeCh)
