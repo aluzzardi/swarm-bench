@@ -100,12 +100,15 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image, i",
-			Value: "hello-world",
 			Usage: "Image to use for benchmarking.",
 		},
 	}
 
 	app.Action = func(c *cli.Context) {
+		if c.String("image") == "" {
+			cli.ShowAppHelp(c)
+			os.Exit(1)
+		}
 		bench(c.Int("requests"), c.Int("concurrency"), c.String("image"))
 	}
 
