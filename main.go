@@ -100,7 +100,7 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:  "image, i",
-			Value: "helloworld",
+			Value: "hello-world",
 			Usage: "Image to use for benchmarking.",
 		},
 	}
