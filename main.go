@@ -50,7 +50,6 @@ func session(requests, concurrency int, image string, completeCh chan time.Durat
 		}()
 	}
 	wg.Wait()
-
 }
 
 func bench(requests, concurrency int, image string) {
@@ -58,6 +57,7 @@ func bench(requests, concurrency int, image string) {
 
 	timings := make([]float64, requests)
 	completeCh := make(chan time.Duration)
+	doneCh := make(chan struct{})
 	current := 0
 	go func() {
 		for timing := range completeCh {
@@ -66,18 +66,20 @@ func bench(requests, concurrency int, image string) {
 			percent := float64(current) / float64(requests) * 100
 			fmt.Printf("[%3.f%%] %d/%d containers started\n", percent, current, requests)
 		}
+		doneCh <- struct{}{}
 	}()
 	session(requests, concurrency, image, completeCh)
 	close(completeCh)
+	<-doneCh
 
 	total := time.Since(start)
-	p50th, _ := stats.Percentile(timings, 50)
+	mean, _ := stats.Mean(timings)
 	p90th, _ := stats.Percentile(timings, 90)
 	p99th, _ := stats.Percentile(timings, 99)
 
-	fmt.Println("")
+	fmt.Printf("\n")
 	fmt.Printf("Time taken for tests: %s\n", total.String())
-	fmt.Printf("Time per container: %vms [50th] | %vms [90th] | %vms [99th]\n", int(p50th*1000), int(p90th*1000), int(p99th*1000))
+	fmt.Printf("Time per container: %vms [mean] | %vms [90th] | %vms [99th]\n", int(mean*1000), int(p90th*1000), int(p99th*1000))
 }
 
 func main() {
