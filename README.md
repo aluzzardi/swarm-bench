@@ -21,6 +21,12 @@ GLOBAL OPTIONS:
    --version, -v		print the version
 ```
 
+## Installing
+
+```
+$ go get github.com/aluzzardi/swarm-bench
+```
+
 ## Example
 
 ```
