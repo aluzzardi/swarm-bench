@@ -38,13 +38,14 @@ func worker(requests int, image string, args []string, completeCh chan time.Dura
 	}
 }
 
-func session(requests, concurrency int, image string, args []string, completeCh chan time.Duration) {
+func session(requests, concurrency int, images []string, args []string, completeCh chan time.Duration) {
 	var wg sync.WaitGroup
-
+	var size = len(images)
 	n := requests / concurrency
 
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
+		image := images[i%size]
 		go func() {
 			worker(n, image, args, completeCh)
 			wg.Done()
@@ -53,7 +54,7 @@ func session(requests, concurrency int, image string, args []string, completeCh 
 	wg.Wait()
 }
 
-func bench(requests, concurrency int, image string, args []string) {
+func bench(requests, concurrency int, images []string, args []string) {
 	start := time.Now()
 
 	timings := make([]float64, requests)
@@ -70,7 +71,7 @@ func bench(requests, concurrency int, image string, args []string) {
 		}
 		doneCh <- struct{}{}
 	}()
-	session(requests, concurrency, image, args, completeCh)
+	session(requests, concurrency, images, args, completeCh)
 	close(completeCh)
 	<-doneCh
 
@@ -102,18 +103,19 @@ func main() {
 			Value: 1,
 			Usage: "Number of containers to start for the benchmarking session. The default is to just start a single container.",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "image, i",
-			Usage: "Image to use for benchmarking.",
+			Value: &cli.StringSlice{},
+			Usage: "Image(s) to use for benchmarking.",
 		},
 	}
 
 	app.Action = func(c *cli.Context) {
-		if c.String("image") == "" {
+		if !c.IsSet("image") && !c.IsSet("i") {
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
-		bench(c.Int("requests"), c.Int("concurrency"), c.String("image"), c.Args())
+		bench(c.Int("requests"), c.Int("concurrency"), c.StringSlice("image"), c.Args())
 	}
 
 	app.Run(os.Args)
