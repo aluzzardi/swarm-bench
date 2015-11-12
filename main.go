@@ -56,7 +56,8 @@ func bench(requests, concurrency int, image string) {
 	start := time.Now()
 
 	timings := make([]float64, requests)
-	completeCh := make(chan time.Duration)
+	// Create a buffered channel so our display goroutine can't slow down the workers.
+	completeCh := make(chan time.Duration, requests)
 	doneCh := make(chan struct{})
 	current := 0
 	go func() {
