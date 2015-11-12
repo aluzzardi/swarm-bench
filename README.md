@@ -16,7 +16,7 @@ COMMANDS:
 GLOBAL OPTIONS:
    --concurrency, -c "1"	Number of multiple requests to perform at a time. Default is one request at a time.
    --requests, -n "1"		Number of containers to start for the benchmarking session. The default is to just start a single container.
-   --image, -i 			Image to use for benchmarking.
+   --image, -i 			Image(s) to use for benchmarking.
    --help, -h			show help
    --version, -v		print the version
 ```
