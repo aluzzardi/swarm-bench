@@ -11,6 +11,8 @@ import (
 	"github.com/montanaflynn/stats"
 )
 
+const MILLIS_IN_SECOND = 1000
+
 func worker(requests int, image string, args []string, completeCh chan time.Duration) {
 	client, err := docker.NewClientFromEnv()
 	if err != nil {
@@ -80,9 +82,13 @@ func bench(requests, concurrency int, images []string, args []string) {
 	p90th, _ := stats.Percentile(timings, 90)
 	p99th, _ := stats.Percentile(timings, 99)
 
+	meanMillis := mean * MILLIS_IN_SECOND
+	p90thMillis := p90th * MILLIS_IN_SECOND
+	p99thMillis := p99th * MILLIS_IN_SECOND
+
 	fmt.Printf("\n")
-	fmt.Printf("Time taken for tests: %s\n", total.String())
-	fmt.Printf("Time per container: %vms [mean] | %vms [90th] | %vms [99th]\n", int(mean*1000), int(p90th*1000), int(p99th*1000))
+	fmt.Printf("Time taken for tests: %.3fs\n", total.Seconds())
+	fmt.Printf("Time per container: %.3fms [mean] | %.3fms [90th] | %.3fms [99th]\n", meanMillis, p90thMillis, p99thMillis)
 }
 
 func main() {
