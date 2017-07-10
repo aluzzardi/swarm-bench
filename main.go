@@ -26,7 +26,9 @@ func worker(requests int, image string, args []string, completeCh chan time.Dura
 			Config: &docker.Config{
 				Image: image,
 				Cmd:   args,
-			}})
+			},
+			HostConfig: &docker.HostConfig{},
+		})
 		if err != nil {
 			panic(err)
 		}
