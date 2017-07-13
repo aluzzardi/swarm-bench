@@ -1,8 +1,11 @@
 package main
 
 import (
+	"crypto/rand"
 	"fmt"
+	"math/big"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,7 +16,7 @@ import (
 
 const MILLIS_IN_SECOND = 1000
 
-func worker(requests int, image string, args []string, completeCh chan time.Duration) {
+func worker(name string, id, requests int, image string, labels map[string]string, args []string, completeCh chan time.Duration) {
 	client, err := docker.NewClientFromEnv()
 	if err != nil {
 		panic(err)
@@ -22,10 +25,13 @@ func worker(requests int, image string, args []string, completeCh chan time.Dura
 	for i := 0; i < requests; i++ {
 		start := time.Now()
 
+		containerName := fmt.Sprintf("%s-%d", name, i+(requests*id))
 		container, err := client.CreateContainer(docker.CreateContainerOptions{
+			Name: containerName,
 			Config: &docker.Config{
-				Image: image,
-				Cmd:   args,
+				Image:  image,
+				Cmd:    args,
+				Labels: labels,
 			},
 			HostConfig: &docker.HostConfig{},
 		})
@@ -42,7 +48,7 @@ func worker(requests int, image string, args []string, completeCh chan time.Dura
 	}
 }
 
-func session(requests, concurrency int, images []string, args []string, completeCh chan time.Duration) {
+func session(name string, requests, concurrency int, images []string, labels map[string]string, args []string, completeCh chan time.Duration) {
 	var wg sync.WaitGroup
 	var size = len(images)
 	n := requests / concurrency
@@ -50,17 +56,19 @@ func session(requests, concurrency int, images []string, args []string, complete
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		image := images[i%size]
-		go func() {
-			worker(n, image, args, completeCh)
+		go func(i int) {
+			worker(name, i, n, image, labels, args, completeCh)
 			wg.Done()
-		}()
+		}(i)
 	}
 	wg.Wait()
 }
 
-func bench(requests, concurrency int, images []string, args []string) {
-	start := time.Now()
+func bench(requests, concurrency int, images []string, labels map[string]string, args []string) {
+	id, _ := rand.Int(rand.Reader, big.NewInt(0xffffff))
+	name := fmt.Sprintf("swarm-bench-%X", id)
 
+	start := time.Now()
 	timings := make([]float64, requests)
 	// Create a buffered channel so our display goroutine can't slow down the workers.
 	completeCh := make(chan time.Duration, requests)
@@ -75,7 +83,7 @@ func bench(requests, concurrency int, images []string, args []string) {
 		}
 		doneCh <- struct{}{}
 	}()
-	session(requests, concurrency, images, args, completeCh)
+	session(name, requests, concurrency, images, labels, args, completeCh)
 	close(completeCh)
 	<-doneCh
 
@@ -116,6 +124,11 @@ func main() {
 			Value: &cli.StringSlice{},
 			Usage: "Image(s) to use for benchmarking.",
 		},
+		cli.StringSliceFlag{
+			Name:  "label, l",
+			Value: &cli.StringSlice{},
+			Usage: "Label(s) to apply to containers.",
+		},
 	}
 
 	app.Action = func(c *cli.Context) {
@@ -123,7 +136,19 @@ func main() {
 			cli.ShowAppHelp(c)
 			os.Exit(1)
 		}
-		bench(c.Int("requests"), c.Int("concurrency"), c.StringSlice("image"), c.Args())
+		var labels map[string]string
+		if c.IsSet("l") || c.IsSet("label") {
+			labels = map[string]string{}
+			for _, l := range c.StringSlice("label") {
+				parts := strings.SplitN(l, "=", 2)
+				if len(parts) != 2 {
+					panic("Malformed label " + l)
+				}
+				labels[parts[0]] = parts[1]
+			}
+		}
+
+		bench(c.Int("requests"), c.Int("concurrency"), c.StringSlice("image"), labels, c.Args())
 	}
 
 	app.Run(os.Args)
