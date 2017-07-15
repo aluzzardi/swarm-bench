@@ -33,7 +33,9 @@ func worker(name string, id, requests int, image string, labels map[string]strin
 				Cmd:    args,
 				Labels: labels,
 			},
-			HostConfig: &docker.HostConfig{},
+			HostConfig: &docker.HostConfig{
+				PublishAllPorts: true,
+			},
 		})
 		if err != nil {
 			panic(err)
